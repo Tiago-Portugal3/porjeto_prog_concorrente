@@ -31,6 +31,15 @@
  *
  *****************************************************************************/
 
+//função de pararelização
+void *pararel1(void *arg)
+{
+    int n = *(int *)arg;
+    long int c = 0;
+    
+    return (void *)c;
+}
+
 int main(int argc, char *argv[])
 {
 	int n_threads;
@@ -85,7 +94,7 @@ int main(int argc, char *argv[])
 
 	for (size_t i = 0; i < n_threads; i++)
 	{
-		 pthread_create(&thread_id[i], NULL, function_de_parelização, NULL);
+		 pthread_create(&thread_id[i], NULL,pararel1, NULL);
 	}
 	
 
@@ -209,5 +218,12 @@ int main(int argc, char *argv[])
 	}
 
 	gdImageDestroy(watermark_img);
+
+//wait for the other trheads and return values
+	for (size_t i = 0; i < n_threads; i++)
+	{
+	 pthread_join(thread_id[i], NULL);
+	}
+	
 	exit(0);
 }
