@@ -161,6 +161,10 @@ int main(int argc, char *argv[])
 	}
 
 	// phtread join
+for ( i = 0; i < n_threads; i++)
+{
+	pthread_join(&thread_id[i],NULL);
+}
 
 	// free memory allocation(free structs inside threads)
 
