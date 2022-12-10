@@ -1,6 +1,5 @@
 #include "gd.h"
 
-
 /******************************************************************************
  * add_watermark()
  *
@@ -79,3 +78,8 @@ int write_png_file(gdImagePtr write_img, char * file_name);
  *
  *****************************************************************************/
 int create_directory(char * dir_name);
+
+
+
+
+

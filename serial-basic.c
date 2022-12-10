@@ -8,15 +8,9 @@
  * Compilacao: gcc serial-complexo -o serial-complex -lgd
  *
  *****************************************************************************/
-
-#include "gd.h"
-#include "image-lib.h"
+#include "functions.h"
 #include <pthread.h>
-
-/* the directories wher output files will be placed */
-#define RESIZE_DIR "./serial-Resize/"
-#define THUMB_DIR "./serial-Thumbnail/"
-#define WATER_DIR "./serial-Watermark/"
+#include "image-lib.h"
 
 /******************************************************************************
  * main()
@@ -31,40 +25,83 @@
  *
  *****************************************************************************/
 
-//função de pararelização
-void *pararel1(void *arg)
-{
-    int n = *(int *)arg;
-    long int c = 0;
-    
-    return (void *)c;
-}
-
 int main(int argc, char *argv[])
 {
-	int n_threads;
+	char pal[100], nome_fData[100], nome_dir[100];
+	int filesCount = 0, i = 0, aux = 0, realdiv, restdiv;
+	FILE *fData;
+	int n_threads = 0;
+	struct data *ptr_data;
 
 	/*verification that the number of arguments is correct and the n_threads is positive*/
-	if (argc != 3)
+	if (argc != 3 || atoi(argv[2]) < 0)
+	{
 		return 0;
+	}
 
-	n_threads = (int)argv[2];
+	// read the arguments
+	strcpy(nome_dir, argv[1]);
 
-	if (n_threads <= 0)
+	strcpy(nome_fData, strcat(nome_dir, "/image-list.txt"));
+
+	n_threads = atoi(argv[2]);
+
+	pthread_t thread_id[n_threads];
+
+	// printf("%s\n %d", nome_fData, n_threads);
+
+	fData = AbreFicheiro(nome_fData, "r");
+
+	while (fData != NULL)
+	{
+		if (fscanf(fData, "%s", pal) != 1)
+		{
+			break;
+		}
+
+		filesCount++;
+	}
+
+	// memory allocation of array
+	array = (char **)malloc(filesCount * sizeof(char *));
+	if (array == NULL)
+	{
+		printf("Failed to allocate memory");
 		return 0;
+	}
 
-	/* array containg the names of files to be processed	 */
-	char *files[] = {"Lisboa-1.png", "IST-1.png", "IST-2.png", "IST-3.png", "00841.png", "00844.png", "00846.png", "00849.png"};
-	/* length of the files array (number of files to be processed	 */
-	int nn_files = 8;
+	rewind(fData);
+	// read and store the name of the images
+	while (fData != NULL)
+	{
+		if (fscanf(fData, "%s", pal) != 1)
+		{
+			break;
+		}
 
-	/* file name of the image created and to be saved on disk	 */
-	char out_file_name[100];
+		array[i] = (char *)malloc((strlen(pal) + 1) * sizeof(char));
+		if (array[i] == NULL)
+		{
+			printf("Failed to allocate memory");
+			return 0;
+		}
+		strcpy(array[i], pal);
+		i++;
+	}
 
-	/* input images */
-	gdImagePtr in_img, watermark_img;
-	/* output images */
-	gdImagePtr out_thumb_img, out_resized_img, out_watermark_img;
+	// test to see the words
+	for (size_t i = 0; i < filesCount; i++)
+	{
+		printf("%s\n", array[i]);
+	}
+
+	// memory allocation of the struct array
+	ptr_data = (struct data *)malloc(n_threads * sizeof(struct data));
+	if (ptr_data == NULL)
+	{
+		printf("Failed memory allocation");
+		return 0;
+	}
 
 	/* creation of output directories */
 	if (create_directory(RESIZE_DIR) == 0)
@@ -89,141 +126,43 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Impossible to read %s image\n", "watermark.png");
 		exit(-1);
 	}
-	/*threads creation*/
-	pthread_t thread_id[n_threads];
-
-	for (size_t i = 0; i < n_threads; i++)
-	{
-		 pthread_create(&thread_id[i], NULL,pararel1, NULL);
-	}
+	// division of the files, store in the structs
+	realdiv = filesCount / n_threads;
+	restdiv = filesCount % n_threads;
 	
 
-	/*
-	 * Add the watermarks
-	 */
-	for (int i = 0; i < nn_files; i++)
+	//initialize the structs
+	for (i = 0; i < n_threads; i++)
 	{
-
-		printf("watermark  %s\n", files[i]);
-		/* load of the input file */
-		in_img = read_png_file(files[i]);
-		if (in_img == NULL)
-		{
-			fprintf(stderr, "Impossible to read %s image\n", files[i]);
-			continue;
-		}
-
-		/* add watermark */
-		out_watermark_img = add_watermark(in_img, watermark_img);
-		if (out_watermark_img == NULL)
-		{
-			fprintf(stderr, "Impossible to creat thumbnail of %s image\n", files[i]);
-		}
-		else
-		{
-			/* save watermark */
-			sprintf(out_file_name, "%s%s", WATER_DIR, files[i]);
-			if (write_png_file(out_watermark_img, out_file_name) == 0)
-			{
-				fprintf(stderr, "Impossible to write %s image\n", out_file_name);
-			}
-			gdImageDestroy(out_watermark_img);
-		}
-		gdImageDestroy(in_img);
-	}
-
-	/*
-	 * To resize images and add watermark
-	 */
-	for (int i = 0; i < nn_files; i++)
-	{
-
-		printf("resize %s\n", files[i]);
-		/* load of the input file */
-		in_img = read_png_file(files[i]);
-		if (in_img == NULL)
-		{
-			fprintf(stderr, "Impossible to read %s image\n", files[i]);
-			continue;
-		}
-		/* resizes of each image */
-		out_watermark_img = add_watermark(in_img, watermark_img);
-		if (out_watermark_img == NULL)
-		{
-			fprintf(stderr, "Impossible to add watermark to %s image\n", files[i]);
-		}
-		else
-		{
-			out_resized_img = resize_image(out_watermark_img, 800);
-			if (out_resized_img == NULL)
-			{
-				fprintf(stderr, "Impossible to resize %s image\n", files[i]);
-			}
-			else
-			{
-				/* save resized */
-				sprintf(out_file_name, "%s%s", RESIZE_DIR, files[i]);
-				if (write_png_file(out_resized_img, out_file_name) == 0)
-				{
-					fprintf(stderr, "Impossible to write %s image\n", out_file_name);
-				}
-				gdImageDestroy(out_resized_img);
-			}
-			gdImageDestroy(out_watermark_img);
-		}
-		gdImageDestroy(in_img);
-	}
-
-	/*
-	 * Add watermark and create thumbnails
-	 */
-	for (int i = 0; i < nn_files; i++)
-	{
-
-		printf("thumbnail %s\n", files[i]);
-		/* load of the input file */
-		in_img = read_png_file(files[i]);
-		if (in_img == NULL)
-		{
-			fprintf(stderr, "Impossible to read %s image\n", files[i]);
-			continue;
-		}
-
-		/* creation of thumbnail image */
-		out_watermark_img = add_watermark(in_img, watermark_img);
-		if (out_watermark_img == NULL)
-		{
-			fprintf(stderr, "Impossible to creat thumbnail of %s image\n", files[i]);
-		}
-		else
-		{
-			out_thumb_img = make_thumb(out_watermark_img, 150);
-			if (out_thumb_img == NULL)
-			{
-				fprintf(stderr, "Impossible to creat thumbnail of %s image\n", files[i]);
-			}
-			else
-			{
-				/* save thumbnail image */
-				sprintf(out_file_name, "%s%s", THUMB_DIR, files[i]);
-				if (write_png_file(out_thumb_img, out_file_name) == 0)
-				{
-					fprintf(stderr, "Impossible to write %s image\n", out_file_name);
-				}
-				gdImageDestroy(out_thumb_img);
-			}
-			gdImageDestroy(out_watermark_img);
-		}
-		gdImageDestroy(in_img);
-	}
-
-	gdImageDestroy(watermark_img);
-
-//wait for the other trheads and return values
-	for (size_t i = 0; i < n_threads; i++)
-	{
-	 pthread_join(thread_id[i], NULL);
+		ptr_data[i].ind_inicial =0;
+		ptr_data[i].ind_final=0;
 	}
 	
+   //define which images go to each thread
+	for (i = 0; i < n_threads; i++)
+	{
+		ptr_data[i].ind_inicial += aux;
+		ptr_data[i].ind_final += (aux + (realdiv - 1));
+		aux += realdiv;
+	}
+	// maneira melhor para dividir as imagens que sobram?
+	ptr_data[n_threads - 1].ind_final += (restdiv);
+
+	for (i = 0; i < n_threads; i++)
+	{
+		printf("ptr_data_inicial:  trhread->%d = %d\n", i, ptr_data[i].ind_inicial);
+		printf("ptr_data_final: trhread->%d = %d\n", i, ptr_data[i].ind_final);
+	}
+
+	// thread creation
+	for (i = 0; i < n_threads; i++)
+	{
+		pthread_create(&thread_id[i], NULL, thread_function, NULL);
+	}
+
+	// phtread join
+
+	// free memory allocation(free structs inside threads)
+
 	exit(0);
 }
