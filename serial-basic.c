@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	int filesCount = 0, i = 0, aux = 0, realdiv, restdiv;
 	FILE *fData;
 	int n_threads = 0;
-	struct data *ptr_data;
+	data *ptr_data;
 
 	/*verification that the number of arguments is correct and the n_threads is positive*/
 	if (argc != 3 || atoi(argv[2]) < 0)
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 	}
 
 	// memory allocation of the struct array
-	ptr_data = (struct data *)malloc(n_threads * sizeof(struct data));
+	ptr_data = (data *)malloc(n_threads * sizeof(data));
 	if (ptr_data == NULL)
 	{
 		printf("Failed memory allocation");
@@ -129,42 +129,60 @@ int main(int argc, char *argv[])
 	// division of the files, store in the structs
 	realdiv = filesCount / n_threads;
 	restdiv = filesCount % n_threads;
-	
 
-	//initialize the structs
+	// initialize the structs
 	for (i = 0; i < n_threads; i++)
 	{
-		ptr_data[i].ind_inicial =0;
-		ptr_data[i].ind_final=0;
+		ptr_data[i].number = i;
+		ptr_data[i].ind_inicial = -1;
+		ptr_data[i].ind_final = -1;
 	}
-	
-   //define which images go to each thread
-	for (i = 0; i < n_threads; i++)
-	{
-		ptr_data[i].ind_inicial += aux;
-		ptr_data[i].ind_final += (aux + (realdiv - 1));
-		aux += realdiv;
-	}
-	// maneira melhor para dividir as imagens que sobram?
-	ptr_data[n_threads - 1].ind_final += (restdiv);
 
-	for (i = 0; i < n_threads; i++)
+	// define which images go to each thread
+	if (n_threads < filesCount)
 	{
-		printf("ptr_data_inicial:  trhread->%d = %d\n", i, ptr_data[i].ind_inicial);
-		printf("ptr_data_final: trhread->%d = %d\n", i, ptr_data[i].ind_final);
+		for (i = 0; i < n_threads; i++)
+		{
+			ptr_data[i].ind_inicial = 0;
+			ptr_data[i].ind_final = 0;
+		}
+		
+		for (i = 0; i < n_threads; i++)
+		{
+			ptr_data[i].ind_inicial += aux;
+			ptr_data[i].ind_final += (aux + (realdiv - 1));
+			aux += realdiv;
+		}
+		// maneira melhor para dividir as imagens que sobram?
+		ptr_data[n_threads - 1].ind_final += (restdiv);
+		/*
+		for (i = 0; i < n_threads; i++)
+			{
+				printf("ptr_data_inicial:  trhread->%d = %d\n", i, ptr_data[i].ind_inicial);
+				printf("ptr_data_final: trhread->%d = %d\n", i, ptr_data[i].ind_final);
+			}
+		*/
+	}
+	else
+	{
+		for (i = 0; i < filesCount; i++)
+		{
+			ptr_data[i].ind_inicial = i;
+			ptr_data[i].ind_final = i;
+		}
 	}
 
 	// thread creation
 	for (i = 0; i < n_threads; i++)
 	{
-		pthread_create(&thread_id[i], NULL, thread_function, NULL);
+		pthread_create(&thread_id[i], NULL, thread_function, &ptr_data[i]);
 	}
 
 	// phtread join
-for ( i = 0; i < n_threads; i++)
-{
-	pthread_join(&thread_id[i],NULL);
-}
+	for (i = 0; i < n_threads; i++)
+	{
+		pthread_join(thread_id[i], NULL);
+	}
 
 	// free memory allocation(free structs inside threads)
 

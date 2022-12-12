@@ -19,12 +19,14 @@ gdImagePtr in_img, watermark_img;
 gdImagePtr out_thumb_img, out_resized_img, out_watermark_img;
 /* file name of the image created and to be saved on disk	 */
 char out_file_name[100], **array;
- 
-struct data
+
+typedef struct Data
 {
-    int nn_files,ind_inicial,ind_final;
-    //informação sobre os indices a serem usados(1º e último?);
-};
+    int number;
+    int ind_inicial ;
+    int ind_final ;
+    // informação sobre os indices a serem usados(1º e último?);
+} data;
 
 FILE *AbreFicheiro(char *nome, char *mode);
 
