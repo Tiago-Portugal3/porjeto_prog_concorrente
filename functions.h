@@ -13,12 +13,7 @@
 #define THUMB_DIR "./serial-Thumbnail/"
 #define WATER_DIR "./serial-Watermark/"
 
-/* input images */
-gdImagePtr in_img, watermark_img;
-/* output images */
-gdImagePtr out_thumb_img, out_resized_img, out_watermark_img;
-/* file name of the image created and to be saved on disk	 */
-char out_file_name[100], **array;
+char out_file_name[100], **array,nome_dir[50];
 
 typedef struct Data
 {

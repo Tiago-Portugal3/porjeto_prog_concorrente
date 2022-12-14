@@ -4,7 +4,7 @@ serial-basic: serial-basic.c functions.h image-lib.c image-lib.h
 	gcc -Wall -pedantic serial-basic.c image-lib.c functions.c -g -o ap-paralelo-1 -lgd -lpthread
 
 clean:
-	rm serial-basic
+	rm ap-paralelo-1
 
 clean-data:
-	rm -fry ./Resize-dir ./Thumbnail-dir ./Watermark-dir
+	rm -fr ./serial-Resize ./serial-Thumbnail ./serial-Watermark

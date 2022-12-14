@@ -2,64 +2,58 @@
  * Programacao Concorrente
  * MEEC 21/22
  *
- * Projecto - Parte1
- *                           serial-complexo.c
+ * Projecto - ParteA_pararel-1
  *
- * Compilacao: gcc serial-complexo -o serial-complex -lgd
- *
+ * Tiago Portugal      Aluno: 100092
+ * Francisco Oliveira  Aluno: 99939
  *****************************************************************************/
 #include "functions.h"
 #include <pthread.h>
 #include "image-lib.h"
 
-/******************************************************************************
- * main()
- *
- * Arguments: (none)
- * Returns: 0 in case of sucess, positive number in case of failure
- * Side-Effects: creates thumbnail, resized copy and watermarked copies
- *               of images
- *
- * Description: implementation of the complex serial version
- *              This application only works for a fixed pre-defined set of files
- *
- *****************************************************************************/
-
 int main(int argc, char *argv[])
 {
-	char pal[100], nome_fData[100], nome_dir[100];
+	char pal[50], nome_fData[50], aux_2[50], ch = '.', ret[50], *extin = ".png";
 	int filesCount = 0, i = 0, aux = 0, realdiv, restdiv;
 	FILE *fData;
 	int n_threads = 0;
 	data *ptr_data;
 
 	/*verification that the number of arguments is correct and the n_threads is positive*/
-	if (argc != 3 || atoi(argv[2]) < 0)
+	if (argc != 3 || atoi(argv[2]) < 1)
 	{
+		printf("Valor de argumentos/trheads inválido");
 		return 0;
 	}
 
-	// read the arguments
-	strcpy(nome_dir, argv[1]);
-
-	strcpy(nome_fData, strcat(nome_dir, "/image-list.txt"));
+	// read the argument
+	strcpy(aux_2, argv[1]);
+	// Strored in 1 global var, to be used in thread functions
+	strcpy(nome_dir, aux_2);
+	strcpy(nome_fData, strcat(aux_2, "/image-list.txt"));
 
 	n_threads = atoi(argv[2]);
-
 	pthread_t thread_id[n_threads];
 
-	// printf("%s\n %d", nome_fData, n_threads);
-
 	fData = AbreFicheiro(nome_fData, "r");
+	if (fData == NULL)
+		return 0;
 
+	// Count the number of words
 	while (fData != NULL)
 	{
 		if (fscanf(fData, "%s", pal) != 1)
 		{
 			break;
 		}
-
-		filesCount++;
+		strcpy(aux_2, pal);
+		strcpy(ret, strrchr(aux_2, ch));
+		printf("%s\n", ret);
+		printf("%s\n", extin);
+		if (strcmp(ret, extin) == 0)
+		{
+			filesCount++;
+		}
 	}
 
 	// memory allocation of array
@@ -69,8 +63,8 @@ int main(int argc, char *argv[])
 		printf("Failed to allocate memory");
 		return 0;
 	}
-
 	rewind(fData);
+
 	// read and store the name of the images
 	while (fData != NULL)
 	{
@@ -78,21 +72,27 @@ int main(int argc, char *argv[])
 		{
 			break;
 		}
-
-		array[i] = (char *)malloc((strlen(pal) + 1) * sizeof(char));
-		if (array[i] == NULL)
+		// checks that the problem file has a .pals extension
+		strcpy(aux_2, pal);
+		strcpy(ret, strrchr(aux_2, ch));
+		printf("%s\n", ret);
+		printf("%s\n", extin);
+		if (strcmp(ret, extin) != 0)
 		{
-			printf("Failed to allocate memory");
-			return 0;
+			printf("%s não tem o formato .png\n", pal);
 		}
-		strcpy(array[i], pal);
-		i++;
-	}
-
-	// test to see the words
-	for (size_t i = 0; i < filesCount; i++)
-	{
-		printf("%s\n", array[i]);
+		else
+		{
+			array[i] = (char *)malloc((strlen(pal) + 1) * sizeof(char));
+			if (array[i] == NULL)
+			{
+				printf("Failed to allocate memory");
+				return 0;
+			}
+			strcpy(array[i], pal);
+			printf("%s\n", pal);
+			i++;
+		}
 	}
 
 	// memory allocation of the struct array
@@ -119,49 +119,31 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Impossible to create %s directory\n", WATER_DIR);
 		exit(-1);
 	}
+	printf("\n");
 
-	watermark_img = read_png_file("watermark.png");
-	if (watermark_img == NULL)
-	{
-		fprintf(stderr, "Impossible to read %s image\n", "watermark.png");
-		exit(-1);
-	}
 	// division of the files, store in the structs
 	realdiv = filesCount / n_threads;
 	restdiv = filesCount % n_threads;
 
-	// initialize the structs
-	for (i = 0; i < n_threads; i++)
-	{
-		ptr_data[i].number = i;
-		ptr_data[i].ind_inicial = -1;
-		ptr_data[i].ind_final = -1;
-	}
-
 	// define which images go to each thread
 	if (n_threads < filesCount)
 	{
+
 		for (i = 0; i < n_threads; i++)
 		{
-			ptr_data[i].ind_inicial = 0;
-			ptr_data[i].ind_final = 0;
-		}
-		
-		for (i = 0; i < n_threads; i++)
-		{
-			ptr_data[i].ind_inicial += aux;
-			ptr_data[i].ind_final += (aux + (realdiv - 1));
-			aux += realdiv;
-		}
-		// maneira melhor para dividir as imagens que sobram?
-		ptr_data[n_threads - 1].ind_final += (restdiv);
-		/*
-		for (i = 0; i < n_threads; i++)
+			ptr_data[i].ind_inicial = aux;
+			if (restdiv > 0)
 			{
-				printf("ptr_data_inicial:  trhread->%d = %d\n", i, ptr_data[i].ind_inicial);
-				printf("ptr_data_final: trhread->%d = %d\n", i, ptr_data[i].ind_final);
+				ptr_data[i].ind_final = (aux + (realdiv));
+				aux += (realdiv + 1);
+				restdiv--;
 			}
-		*/
+			else
+			{
+				ptr_data[i].ind_final = (aux + (realdiv - 1));
+				aux += realdiv;
+			}
+		}
 	}
 	else
 	{
@@ -185,6 +167,13 @@ int main(int argc, char *argv[])
 	}
 
 	// free memory allocation(free structs inside threads)
+	fclose(fData);
 
+	for (i = 0; i < filesCount; i++)
+	{
+		free(array[i]);
+	}
+
+	free(ptr_data);
 	exit(0);
 }
